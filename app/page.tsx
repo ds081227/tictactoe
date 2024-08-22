@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   actions,
   Board,
@@ -10,9 +11,11 @@ import {
   winner as winnerfunc,
 } from "@/utils/action";
 import { useEffect, useState } from "react";
+import useSound from "use-sound";
 
 let aiTurn = false;
 let player = null;
+let aiFirstMove = false;
 
 export default function Home() {
   const [user, setUser] = useState<string | null>(null);
@@ -20,6 +23,27 @@ export default function Home() {
   const [xTurn, setXTurn] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
+  const [gameResetting, setGameResetting] = useState(false);
+  const [playXsound] = useSound("/x_sound.mp3", { volume: 0.5 });
+  const [playOsound] = useSound("/o_sound.mp3", { volume: 0.5 });
+  const [playRestartSound] = useSound("/restart.mp3", { volume: 0.5 });
+  const [playGameEnd] = useSound("/game-end.mp3", { volume: 0.5 });
+
+  useEffect(() => {
+    if (!gameResetting) {
+      playGameEnd();
+    }
+  }, [gameOver]);
+
+  useEffect(() => {
+    if (!gameResetting) {
+      if (xTurn) {
+        playXsound();
+      } else if (!xTurn) {
+        playOsound();
+      }
+    }
+  }, [board]);
 
   useEffect(() => {
     setGameOver(terminal(board));
@@ -27,11 +51,17 @@ export default function Home() {
     player = playerfunc(board);
     if (user !== player && !gameOver) {
       if (aiTurn) {
+        let aiAction = null;
+        if (aiFirstMove) {
+          aiAction = actions(board)[Math.floor(Math.random() * 9)];
+          aiFirstMove = false;
+        } else {
+          aiAction = minimax(board);
+        }
+        if (!aiAction) {
+          return;
+        }
         setTimeout(() => {
-          const aiAction = minimax(board);
-          if (!aiAction) {
-            return;
-          }
           // actions(board)[Math.floor(Math.random() * actions(board).length)];
           setBoard(result(board, aiAction));
           setXTurn(!xTurn);
@@ -42,12 +72,14 @@ export default function Home() {
   }, [board, user, xTurn, gameOver]);
 
   function handleReset() {
+    setGameResetting(true);
     setBoard(initial_state());
     setUser(null);
     setXTurn(true);
     setGameOver(false);
     setWinner(null);
     aiTurn = false;
+    playRestartSound();
   }
 
   function handleClick(board: Board, i: number, j: number) {
@@ -83,20 +115,20 @@ export default function Home() {
 
   return (
     <section>
-      <div className="container flex flex-col justify-center gap-3 items-center pt-3">
-        <h1 className="text-4xl">Tic-Tac-Toe</h1>
+      <div className="container flex flex-col justify-center gap-10 items-center sm:pt-50 pt-40">
+        <h1 className="text-6xl text-zinc-100">Tic-Tac-Toe</h1>
         {user ? (
           <>
-            <div>
-              <p hidden={gameOver}>
-                {xTurn ? "It's X turn now" : "It's O turn now"}
+            <div className="flex flex-col justify-center items-center ">
+              <p hidden={gameOver} className="text-2xl">
+                {aiTurn ? "AI thinking..." : "It's your turn now"}
               </p>
-              <p>
+              <p hidden={!gameOver} className="text-4xl">
                 {gameOver
                   ? winner
                     ? `The winner is ${winner}`
                     : "Tie game"
-                  : "Game in progress"}
+                  : "Game in progress.."}
               </p>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-4">
@@ -113,29 +145,48 @@ export default function Home() {
                 });
               })}
             </div>
-            <button
-              className="border border-black rounded-md"
+            <Button
+              size="sm"
+              className="hover:bg-primary/50 transition-all duration-300 p-4 text-xl"
               onClick={handleReset}>
-              Reset
-            </button>
+              Restart
+            </Button>
           </>
         ) : (
           <>
-            <button
-              className="btn bg-red-600 text-white rounded-md px-2"
-              hidden={user !== null}
-              onClick={() => setUser("X")}>
-              Play as X (Goes first)
-            </button>
-            <button
-              className="btn bg-green-600 text-white rounded-md px-2"
-              hidden={user !== null}
-              onClick={() => {
-                setUser("O");
-                aiTurn = true;
-              }}>
-              Play as O (Goes Second)
-            </button>
+            <p className="text-2xl leading-normal text-zinc-300">
+              Choose your side and play against the AI!
+              <br /> <span className="text-red-600 font-bold text-3xl">
+                X
+              </span>{" "}
+              will start first and{" "}
+              <span className="text-green-600 font-bold text-3xl">O</span> will
+              start second.
+            </p>
+            <div className="flex gap-12">
+              <Button
+                size="lg"
+                className=" text-red-600 font-bold text-6xl hover:text-white transition-all duration-200 bg-primary/20"
+                hidden={user !== null}
+                onClick={() => {
+                  setUser("X");
+                  setGameResetting(false);
+                }}>
+                X
+              </Button>
+              <Button
+                size="lg"
+                className="text-green-600 font-bold text-6xl hover:text-white transition-all duration-200 bg-primary/20"
+                hidden={user !== null}
+                onClick={() => {
+                  setUser("O");
+                  setGameResetting(false);
+                  aiTurn = true;
+                  aiFirstMove = true;
+                }}>
+                O
+              </Button>
+            </div>
           </>
         )}
       </div>

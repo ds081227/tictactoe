@@ -117,7 +117,7 @@ export default function Home() {
 
   return (
     <section>
-      <div className="container flex flex-col justify-center gap-10 items-center sm:pt-50 pt-40">
+      <div className="container flex flex-col justify-center gap-10 items-center pt-40">
         <h1 className="text-6xl text-zinc-100">Tic-Tac-Toe</h1>
         {user ? (
           <>

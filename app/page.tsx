@@ -29,12 +29,14 @@ export default function Home() {
   const [playRestartSound] = useSound("/restart.mp3", { volume: 0.5 });
   const [playGameEnd] = useSound("/game-end.mp3", { volume: 0.5 });
 
+  // Game end sound
   useEffect(() => {
     if (!gameResetting) {
       playGameEnd();
     }
   }, [gameOver]);
 
+  // Board update sound
   useEffect(() => {
     if (!gameResetting) {
       if (xTurn) {
